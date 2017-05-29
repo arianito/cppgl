@@ -15,16 +15,18 @@ SET(GLFW_INSTALL OFF CACHE BOOL "Generate installation target" FORCE)
 
 ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/modules/glfw)
 ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/modules/glad)
+ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/modules/imgui)
 
 include_directories(
 	${glfw_INCLUDE_DIRS}
 	${glad_INCLUDE_DIRS}
 	${glm_INCLUDE_DIRS}
+	${imgui_INCLUDE_DIRS}
 )
 
-ADD_EXECUTABLE(game ${CMAKE_SOURCE_DIR}/src/main.cpp)
+ADD_EXECUTABLE(game ${CMAKE_SOURCE_DIR}/src/main.cpp ${CMAKE_SOURCE_DIR}/src/imgui_impl_glfw_gl3.cpp ${CMAKE_SOURCE_DIR}/src/imgui_impl_glfw_gl3.h)
 
-TARGET_LINK_LIBRARIES(game glfw glad)
+TARGET_LINK_LIBRARIES(game glad glfw imgui)
 
 if (APPLE)
 	set_target_properties(game PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Game")

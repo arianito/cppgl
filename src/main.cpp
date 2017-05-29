@@ -1,9 +1,18 @@
+#include <iostream>
+#include <memory>
+#include <string>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
+
+
+#include <imgui.h>
+#include "imgui_impl_glfw_gl3.h"
+
+
 
 const GLchar* vertexSource = R"glsl(
-    #version 140
+    #version 150 core
     in vec2 position;
     in vec3 color;
     out vec3 Color;
@@ -15,7 +24,7 @@ const GLchar* vertexSource = R"glsl(
 )glsl";
 
 const GLchar* fragmentSource = R"glsl(
-    #version 140
+    #version 150 core
     in vec3 Color;
     out vec4 outColor;
     void main()
@@ -26,16 +35,25 @@ const GLchar* fragmentSource = R"glsl(
 
 int main(){
     GLFWwindow *window;
+    //NVGcontext *nvg = nullptr;
     
     if(!glfwInit()) {   
         fprintf(stderr, "Failed to initialize GLFW\n");
         return -1;
     }
 
-    glfwWindowHint(GLFW_SAMPLES, 4); 
+    glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-    
-    window = glfwCreateWindow(800, 600, "Aryan", nullptr, nullptr);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#if __APPLE__
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+
+
+    window = glfwCreateWindow(600, 600, "Aryan", nullptr, nullptr);
     
     
     if(window == nullptr) {
@@ -44,92 +62,67 @@ int main(){
         return -1;
     }
 
+
     glfwSetWindowPos(window, 100, 100);
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         fprintf(stderr, "Failed to initialize OpenGL context.\n");
         return -1;
     }
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 
-
-    // Create Vertex Array Object
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Create a Vertex Buffer Object and copy the vertex data to it
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-
-    GLfloat vertices[] = {
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Top-left
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-right
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
-        -0.5f, -0.5f, 1.0f, 1.0f, 1.0f  // Bottom-left
-    };
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Create an element array
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
-
-    GLuint elements[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-
-    // Create and compile the vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexSource, NULL);
-    glCompileShader(vertexShader);
-
-    // Create and compile the fragment shader
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-    glCompileShader(fragmentShader);
-
-    // Link the vertex and fragment shader into a shader program
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glBindFragDataLocation(shaderProgram, 0, "outColor");
-    glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
-
-    // Specify the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
-
-    GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
-    glEnableVertexAttribArray(colAttrib);
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	ImGui_ImplGlfwGL3_Init(window, true);
 
 
-    
+	bool show_default = true;
+	bool show_another_window = false;
+
+	ImVec4 clear_color = ImColor(10, 20, 30);
+
+	float f = 0.0f;
+
 
     do {
-         // Clear the screen to black
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+	    glfwPollEvents();
+	    ImGui_ImplGlfwGL3_NewFrame();
 
-        // Draw a rectangle from the 2 triangles using 6 indices
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+	    // 1. Show a simple window
+	    // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+	    {
+		    ImGui::Begin("Another Window");
+
+		    ImGui::Text("Hello, world!");
+		    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+		    ImGui::ColorEdit3("clear color", (float*)&clear_color);
+		    if (ImGui::Button("Another Window")) show_another_window ^= 1;
+		    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		    ImGui::End();
+	    }
+
+	    // 2. Show another simple window, this time using an explicit Begin/End pair
+	    if (show_another_window)
+	    {
+		    ImGui::Begin("Another Window 2");
+		    char buff[16];
+		    sprintf(buff, "%f", f);
+		    ImGui::Text(buff);
+		    ImGui::End();
+	    }
+
+	    // Rendering
+	    int display_w, display_h;
+	    glfwGetFramebufferSize(window, &display_w, &display_h);
+	    glViewport(0, 0, display_w, display_h);
+	    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+	    glClear(GL_COLOR_BUFFER_BIT);
+	    ImGui::Render();
+	    glfwSwapBuffers(window);
         
     }
-    while(glfwGetKey(window, GLFW_KEY_ESCAPE)!=GLFW_PRESS&&
-          glfwWindowShouldClose(window)==0);
-    
+    while( glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0 );
+
+	ImGui_ImplGlfwGL3_Shutdown();
     glfwTerminate();
     
     return 0;
